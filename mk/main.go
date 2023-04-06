@@ -37,13 +37,30 @@ func makePath(path string, logErrors bool) {
 }
 
 func makePaths(paths []string, logErrors bool) {
+	home := os.Getenv("HOME")
+	if len(home) == 0 {
+		user := os.Getenv("USERPROFILE")
+		if len(user) != 0 {
+			home = user
+		}
+	}
+	home = strings.ReplaceAll(home, "\\", "/")
+	os.Setenv("HOME", home)
+	home += "/"
+
 	var wg sync.WaitGroup
 	for _, path := range paths {
 		wg.Add(1)
 		defer wg.Wait()
 		go func(path string) {
 			defer wg.Done()
-			makePath(strings.TrimLeft(strings.ReplaceAll(path, "\\", "/"), "/"), logErrors)
+			path = strings.ReplaceAll(path, "\\", "/")
+			path = strings.TrimLeft(path, "/")
+			path, isHomePath := strings.CutPrefix(path, "~/")
+			if isHomePath {
+				path = home + path
+			}
+			makePath(path, logErrors)
 		}(path)
 	}
 }
